@@ -4,6 +4,7 @@ import albin.techship.model.Article
 import albin.techship.model.Attributes
 import albin.techship.model.Category
 import albin.techship.model.Price
+import android.content.pm.ActivityInfo
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
@@ -40,6 +41,7 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         createAllModels()
         createProducts()
         val spinner: Spinner = spinner
@@ -98,35 +100,34 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
-    private fun get_article_category(category_id: Int): Category {
-        val category = categories.filter { it.id == category_id }
-        categories.forEach {         Log.d("TechShip", "ID som finns " + it.id) }
-        return category[0]
+    private fun get_article_category(category_id: Int): Category? {
+        //hitta och retunera en kategori object som matchar @category_id
+        return categories.find { it.id == category_id }
     }
 
-    private fun get_article_attributes(article_id: Int): Attributes {
-        val attributes = attributes.filter { it.article_id == article_id }
-        return attributes[0]
+    private fun get_article_attributes(article_id: Int): Attributes? {
+        //hitta och retunera en attribut object som matchar @article_id
+        return attributes.find { it.article_id == article_id }
     }
 
-    private fun get_price(article_id: Int): Price {
-        val price = prices.filter { it.article_id == article_id }
-        return price[0]
+    private fun get_price(article_id: Int): Price? {
+        //hitta och retunera ett pris object som matchar @article_id
+        return prices.find { it.article_id == article_id }
     }
 
-
-    private fun searchProduct(teknik: String, maxTemp: Int, minTemp: Int, pris: Int) {
+    /** Söker igenom alla artiklar och kollar om de givna parametrarna stämmer med produkten */
+    private fun searchProduct(neededTech: String, maxTemp: Int, minTemp: Int, pris: Int) {
         resultat.text = ""
         val foundProducts = arrayListOf<Article>()
         articles.forEach {
-            //hämta kategorin
-            if(checkCategory(get_article_category(it.category_id).name, teknik)) {
+            //kolla kategorin
+            if(checkCategory(get_article_category(it.category_id)?.name, neededTech)) {
                 //kategorin matchar för denna produkt
-                val productMaxTemp = Integer.parseInt(get_article_attributes(it.id).max_value)
-                val productMinTemp = Integer.parseInt(get_article_attributes(it.id).min_value)
+                val productMaxTemp = Integer.parseInt(get_article_attributes(it.id)!!.max_value)
+                val productMinTemp = Integer.parseInt(get_article_attributes(it.id)!!.min_value)
                 if(checkTemperature(maxTemp, minTemp, productMaxTemp, productMinTemp)) {
                     //tempen är i rätt intervall
-                    if(checkPrice(get_price(it.id).price, pris)) {
+                    if(checkPrice(get_price(it.id)?.price, pris)) {
                         //priset är inom kundens prisklass, produkt hittad
                         foundProducts.add(it)
                     }
@@ -141,19 +142,18 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         } else { Toast.makeText(this, "Ingen produkt hittades" , Toast.LENGTH_LONG).show() }
     }
 
-    /** kolla om kategorierna är samma */
-    private fun checkCategory(categoryOne: String, categoryTwo: String): Boolean {
-        return categoryOne == categoryTwo
-    }
+    /** Kolla om kategorierna är samma */
+    private fun checkCategory(categoryOne: String?, categoryTwo: String?): Boolean = categoryOne == categoryTwo
 
-    /** kolla om max tempen given överskrider max tempen för produkten eller om min tempen är lägre än min tempen för produkten */
-    private fun checkTemperature(maxTemp: Int, minTemp: Int, productMaxTemp: Int, productMinTemp: Int): Boolean {
-        return productMaxTemp > maxTemp || productMinTemp < minTemp
-    }
-    /**  kolla om max priset är mindre än priset för produkten */
-    private fun checkPrice(produktPris: Int, maxPris: Int): Boolean {
-        return maxPris >= produktPris
-    }
+
+    /** Kolla om max temperaturen för produkten är högre än den givna max tempen, samt om min tempen är större än den givna min tempen*/
+    private fun checkTemperature(maxTemp: Int, minTemp: Int, productMaxTemp: Int, productMinTemp: Int): Boolean = productMaxTemp > maxTemp && productMinTemp < minTemp
+
+
+    /**  Kolla om max priset är mindre än priset för produkten */
+    private fun checkPrice(produktPris: Int?, maxPris: Int): Boolean = maxPris >= produktPris!!
+
+
     /** Visar namnet på produkterna som hittades i en textView */
     private fun displayResult(products: ArrayList<Article>) {
         var resultString: String = ""
@@ -162,6 +162,8 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
         resultat.text = resultString
     }
+
+
 
     override fun onItemSelected(parent: AdapterView<*>, view: View, pos: Int, id: Long) {
         Toast.makeText(this, parent.getItemAtPosition(pos).toString(), Toast.LENGTH_LONG).show()
